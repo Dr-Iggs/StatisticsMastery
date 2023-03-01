@@ -1,0 +1,93 @@
+---
+title: "High School Seniors t Test"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(DT)
+library(pander)
+library(readr)
+library(car)
+library(mosaic)
+
+HSS <- read_csv("../../Data/HighSchoolSeniors.csv")
+#Remember: select "Session, Set Working Directory, To Source File Location", and then play this R-chunk into your console to read the HSS data into R. 
+```
+
+
+### 1. Come up with a Question that can be Answered with a T-Test.
+Do people send texts as much as they receive them?
+As conversation between students moves more and more digital, I want to see the extent to which people are involved in these conversations. Do they send as many texts as they receive? If there's a difference, that could tell us a bit about what kinds of kids text more consistently, as well as the the role that bigger group chats play in each student's communication.
+
+Some individuals didn't leave any information about their texting, and others put in non-numerical answers, so we will filter out any entry that is not a number
+
+```{r}
+TextHSS <- filter(HSS,!is.na(Text_Messages_Received_Yesterday) & !is.na(Text_Messages_Sent_Yesterday) & Text_Messages_Sent_Yesterday != 'none' & Text_Messages_Received_Yesterday %in% (0:10000))
+Text2HSS <- TextHSS %>%
+  mutate(Sent_Texts = as.numeric(Text_Messages_Sent_Yesterday)) %>%
+  mutate(Received_Texts = as.numeric(Text_Messages_Received_Yesterday))
+Text3HSS <- select(Text2HSS, c(Region, Sent_Texts, Received_Texts))
+datatable(Text3HSS, options=list(lengthMenu = c(5,13,30)), extensions="Responsive")
+#column = mutate(parse_number(column))
+```
+
+
+### 2. The Hypotheses
+
+For this analysis we'll use a paired t-test, so for each student we're looking at the relationship between our two texting variables. My prediction is that each student receives more texts than they send out, because group chats and automated messages mean that one text can get sent to more than one person. The difference between *texts received* - *texts sent* will be > 0.
+$$
+H_0: \mu_d = 0
+$$
+$$
+H_a: \mu_d > 0
+$$
+
+
+#### 2.5 Double-Check
+I want to make sure that the data I have can be studied. Before we run a paired t-test, let's see what a basic scatter plot of sent texts and received texts looks like.
+```{r}
+#qqPlot(as.numeric(TextHSS$Text_Messages_Received_Yesterday)- as.numeric(TextHSS$Text_Messages_Sent_Yesterday))
+plot(Received_Texts~Sent_Texts,data=Text3HSS,xlab='Text Messages Sent',ylab='Text Messages Received',main='Do People Send as many Texts as they Receive?',pch=20)
+```
+
+There's 428 students still in the survey after the filter, which is enough people to assume the distribution of sample means will be normal (n>30)! There are some outliers here, but overall there seems to be a general positive correlation between sent and received texts. We'll have to use the t-test to see if it sways more towards receiving texts.
+
+Here's a summary of student's *received* texts:
+```{r}
+pander(favstats(Text3HSS$Received_Texts))
+```
+
+And here's the summary for what students *sent*.
+```{r}
+pander(favstats(Text3HSS$Sent_Texts))
+```
+
+And finally, here's the summary for the difference between sent and received for each student.
+```{r}
+pander(favstats(Text3HSS$Received_Texts-Text3HSS$Sent_Texts))
+```
+
+The difference between our mean of 23 and our median of 1 suggests that our distribution is right-skewed. There are a few students who receive WAY more texts than they get. Luckily, with such a large number of students, those outliers should be ok.
+
+### 3. P-Value and Summaries.
+
+```{r}
+pander(t.test(Text3HSS$Received_Texts-Text3HSS$Sent_Texts,mu=0,alternative = 'greater'))
+```
+
+### 4. Results
+After filtering out the major outliers, we can tell from the boxplot that most of the students's texting differences come out above 0. This verifies our paired t-test which gives a similar result.
+```{r}
+Text4HSS <- filter(Text3HSS, abs(Received_Texts-Sent_Texts) <100)
+boxplot(Text4HSS$Received_Texts-Text4HSS$Sent_Texts,
+        ylab='How many more Texts do Students Receive?',
+        main='Most Students get more Texts than they Send')
+```
+
+### 5. Conclusion & Future Studies
+We have sufficient evidence to reject our Null Hypothesis that people send as many text as they receive. We are more than 95% confident that the true difference of texts is greater than 0. On average, high school students receive 23.2 more texts than they send. More research could tell us whether group chats or automated meessages are responsible for this difference, but we can't conclude that with our current survey information.
+

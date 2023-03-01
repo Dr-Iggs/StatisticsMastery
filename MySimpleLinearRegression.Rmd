@@ -1,0 +1,161 @@
+---
+title: "Simple Linear Regression"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r, message=FALSE, warning=FALSE}
+# Load your libraries
+library(car)
+library(tidyverse)
+library(mosaic)
+library(pander)
+bball <- read.csv("../../Data/linregbball.csv")
+# Load your data after saving a csv file in your Data folder.
+# You can use either 
+#   someName <- read.csv("../Data/YourDataFileName.csv", header=TRUE)
+# or
+#   library(readr)
+#   someName <- read_csv("../Data/YourDataFileName.csv")
+
+# Don't forget to run "Session -> Set Working Directory -> To Source file location"
+
+```
+
+
+<!-- Directions
+
+Come up with a simple linear regression of your own creation. 
+
+* Write the Background and clearly state your question. Then collect data and perform the linear regression analysis in order to answer your question. Use the proper order of first, ask the question, then second, figure out the answer.
+
+* You should collect both the quantitative response variable and the quantitative explanatory variable yourself. This can be data you collect from 
+    - the internet (like weather data, Facebook data, or sports data) 
+    - your own experiment 
+    - your own observational study
+* However,     
+    - The data should not be a single pre-existing dataset. It must be something that you piece together yourself.
+
+* You need at least $n=3$ $(X,Y)$ pairs to perform the regression. However, your regression will only be useful if you can get around $n=10$ or more observations.
+
+-->
+
+
+## Background
+
+My hometown of Chicago has a rich history of baseball. It was usually something you could count on: like always getting lost on Wacker St, you could count on the Cubs to lose, and the White Sox to be mediocre.
+
+The last baseball game I saw in Chicago was when the Chicago White Sox hosted the Toronto Blue Jays. We went as a priest's quorum activity, because each ticket was only \$5 and they gave you more than \$5 worth of free stuff just for showing up. I think I still have a White Sox beach towel at home from that game.
+
+We sat in the shade that humid June day as the White Sox pounded out **7** home runs, but still lost the game 10-8. Losing a game like that isn't easy. Only one other MLB team has ever hit 7 home runs and still lost.
+
+That same year the Cubs won the World Series. Nothing would ever be the same.
+
+My high school brain was puzzled. Do home runs even matter? Does anything even matter? Now, after dropping out of the Philosophy program and with Game 6 of the World Series tonight, it's time to find out.
+
+![](https://media.giphy.com/media/QtoG24OvehcYUhf7mI/giphy.gif)
+
+## The Starting Lineup
+
+The core dataset has statistics about every team's baseball season across every year going back to the 1870s. I previously filtered down to just our two variables: Home Runs (HR) and Wins (W). That gives us 24 entries per year (1 per team), and multiplied by 150 years gives us too many points to visualize. Let's also filter it down to games after 1970. Most of the current major league teams were established by this point, so I hope it will help with the consistency of our errors.
+
+```{r}
+ball70 <- filter(bball, yearID > 1970)
+```
+
+We will use this model to determine our linear regression:
+$$
+\underbrace{Y_i}_\text{Expected Wins} = \overbrace{\beta_0}^\text{y-int} + \overbrace{\beta_1}^\text{slope} \underbrace{X_i}_\text{Home Runs} + \epsilon_i \quad \text{where} \ \epsilon_i \sim N(0, \sigma^2)
+$$
+My default, high school Spencer hypothesis is that the slope of our regression line will be 0. Home runs have 0 impact on total wins.
+$$H_0: \beta_1 = 0$$
+My enlightened, philosophy drop-out alternative hypothesis is that it does matter.
+$$H_a: \beta_1 \neq 0$$
+We will use a significance level of $\alpha = 0.05$.
+
+## Top of the 1st
+
+Before we get too far, let's see if there are any general trends between wins and home runs. I predict that we'll see a small increase based on home runs, enough to help win games but not enough to define a season.
+
+```{r}
+plot(W~HR, data=ball70, xlab='Home Runs in the Season', ylab='Wins for the Season', main='I *think* there\'s a Positive Correlation')
+```
+
+With so many points so close together, it's hard to notice a correlation. The outliers seem to be mostly in the left dugout and the right field (coincidentally, also where I spent most of my Little League games), so we might find a slight positive correlation.
+
+Here's a breakdown of all our Home Runs
+```{r}
+pander(favstats(ball70$HR))
+```
+
+And here's a breakdown of our Wins:
+```{r}
+pander(favstats(ball70$W))
+```
+
+## The Linear Regression
+
+```{r}
+ball70.lm <- lm(W~HR,data=ball70)
+pander(summary(ball70.lm))
+```
+
+#### Play-by-Play Analysis
+
+Our linear regression analysis says that each home run a team scores increases their expected wins for the season by .11, or that it takes about 10 home runs to really "earn" yourself a new win. Our p-value is highly significant at $\alpha = 0.05$, but such a small slope means that our home runs variable doesn't have a very big impact. Home runs are great for crowds, not as much for team managers. 
+
+$$\underbrace{Y_i}_\text{Mean Wins} = 62.86 + 0.1117 \underbrace{X_i}_\text{Home Runs}$$
+
+Our $R^2$ is pretty low at 0.1515, which means our correlation $r=0.389$. With such a large dataset (1000+ seasons) and a relatively small possible range of wins (37-116 per season), it would be really difficult to get a line that matches lots of these individual points.
+
+#### Slow-Motion Replay
+
+With dozens of teams across hundreds of season, it's not surprising that we got a significant p-value. Let's filter it down to just the White Sox's last 50 years and see what we get.
+
+```{r}
+Chicago <- filter(ball70,name %in% c('Chicago White Sox'))
+ballChi.lm <- lm(W~HR, data=Chicago)
+pander(summary(ballChi.lm))
+```
+
+It may not be *as* significant, but it sure looks pretty good for my White Sox!
+
+
+## 7th Inning Stretch
+
+```{r}
+plot(W~HR, data=ball70, xlab='Home Runs',ylab='Wins',main='Home Runs DO Help! (Technically)')
+abline(ball70.lm,lty=1,lwd=3)
+```
+
+From this we should be able to predict a team's record based on their home runs. This year's White Sox had a total of 149 home runs. Based on our linear regression, we can predict that they won this many games...
+
+```{r}
+pander(predict(ball70.lm,data.frame(HR=149)))
+```
+
+Their final record had 81 wins that season, so pretty good! If there's anything to love about the White Sox, it's their consistent mediocrity.
+
+
+## Umpire's Review:
+#### Residual vs Fitted, QQ Plot, Residual vs Quarter (+ explanations)
+```{r}
+par(mfrow=c(1,3))
+plot(ball70.lm,which=1:2)
+plot(ball70.lm$residuals)
+```
+
+Starting at 1st base, our residual plot looks even throughout the dataset. I'm pleasantly surprised by this, because the game of baseball has changed a lot, even in the last 50 years. The league will ocassionally change pitching distance, baseball density, and field length to keep games entertaining for fans, but over the years it's stayed relatively consistent. Hopefully this is also because we filtered out the early, wild west years of professional baseball. The error terms are independent!
+
+Looking out our QQPlot on 2nd base, the errors of the teams seems to be fairly normal. Considering how many teams we have, this Linear Regression requirement should be good. We see big drops in residuals around the 200 index and 600 index, which matches the big player strikes of 1981 and 1994. All of those teams had low wins and low home runs, because they played less games. 
+
+Our residual vs fitted plot looks pretty good to. The variance is pretty constant across the values, with the majority sitting between -20 to 20.
+
+We're rounding third and on our way home!
+
+## Bottom  of the 9th
+
+With such a large dataset, we have enough entries to do an individual regression for the rest of the teams, or even looking at previous decades. The 1920s were a very different time for baseball.
+Also, if the wins aren't coming from home runs, there must be other variables in our dataset that could impact our wins, like total hits, runs, or strikeouts for the pitchers. We could run a different model that finds which has the largest slope value.

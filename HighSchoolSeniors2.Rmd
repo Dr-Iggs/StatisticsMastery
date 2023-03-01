@@ -1,0 +1,144 @@
+---
+title: "High School Seniors 2"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r, warning=FALSE, message=FALSE}
+library(mosaic)
+library(DT)
+library(pander)
+library(car)
+library(tidyverse)
+library(ggplot2)
+
+# Read in the data
+HSS <- read.csv("../../Data/HighSchoolSeniors.csv", header=TRUE) 
+
+```
+
+----
+
+
+<!-- Instructions:
+
+Use the HighSchoolSeniors data set to perform an interesting two-way ANOVA analysis. You'll need to study the data set to decide which variables are most interesting to you. You might look at what you did for the t-Test analysis, and dive more deeply into the questions you researched on that analysis.
+
+Here is a link to the survey given to the students that participated in the study:
+https://ww2.amstat.org/censusatschool/pdfs/C@SQuestionnaire.pdf
+(Use the link to learn about what each column of data in the data set represents.)
+
+Remember you need a Quantitative Y variable and two Qualitative explanatory variables (factors) to perform a two-way ANOVA.
+
+While you should use the warpbreaks and DayCare example analyses as your guide on how to properly complete this analysis, you should also be creative in your final delivery of this analysis. If you copy the format and approach of the example analyses, be sure to give credit in your document to these example analyses. You could write something like, "This work is modeled after the [warpbreaks](https://byuistats.github.io/Statistics-Notebook/Analyses/ANOVA/Examples/warpbreaksTwoWayANOVA.html) analysis." Whatever you do, DO NOT use any of the written statements from the example analyses in your analysis unless you quote them directly and give credit. Using someone else's writing as your own without giving credit to the original author is plagiarism and is an Honor Code Violation. So do your own work. Plus, the more you try to write things in your own words, the more you will learn. Also, note that there aren't really any "rules" about exactly how your document should be organized. So be creative and do something that makes sense to you.
+-->
+## Intro 
+
+I can't think of few things bigger right now than superheroes and soft drinks. There's nothing like sitting down with a cold Pepsi and rewatching Thor for the 15th time on a quiet Wednesday evening. People want to become superheroes, and have the skills and possibilities they have. High School students are looking for those role models more than anyone, so how are they doing so far? Does their desire to be a superhero or their favorite type of drink have an impact on the most basic of superhero skills, their reaction time? After filtering out student's non-entries and the absurdly slow reaction times, we sat down to find out.
+
+![](https://i.pinimg.com/originals/ef/4d/c4/ef4dc433695c04e024f605dde1fa5e1f.jpg)
+
+```{r}
+HSS2 <- filter(HSS, !is.na(Beverage) & Beverage != '')
+HSS2 <- filter(HSS2, !is.na(Reaction_time) & Reaction_time < 2)
+HSS2 <- filter(HSS2, !is.na(Superpower) & Superpower != '')
+HSS2 <- HSS2 %>%
+  mutate(ComboDrink = case_when(
+    Beverage=='Water'~'Water',
+    Beverage %in% c('Soft drink (caffeinated)','Soft drink (non-caffeinated)')~'Soda',
+    Beverage %in% c('Sports drink','Energy drink','Powdered Drink')~'Energy Drink',
+    Beverage %in% c('Juice','Milk','Other')~'Other',
+    Beverage %in% c('Tea','Coffee')~'Hot Drinks'
+  ))
+```
+
+## Superpower on Reaction Time
+
+Do quick students wish they could freeze time and be even faster, or do slow students long for it? Does a person wanting telepathy have a better sense for the reaction time of the survey? This half of the analysis is less about lifestyle choices and more about their inward desires. Our new hypotheses are these, with an $\alpha$ = 0.05:
+
+$$H_0: \mu_\text{Telepathy} = \mu_\text{Invisibility} ...= \mu_\text{All Superpowers} $$
+$$H_a: \text{At least one of the Means is different}$$
+
+Here's our breakdown by superhero category.
+
+```{r}
+pander(favstats(Reaction_time~Superpower,data=HSS2)[c('Superpower', 'min', 'median', 'max', 'mean','sd','n')])
+```
+
+Except for Super Strength, each of these has a pretty even response rate, which will make it a bit easier to find consistencies across the groups. The standard deviations are also fairly consistent. We also see that one student had a reaction time of .01, so maybe he *did* have telepathy??
+
+```{r}
+xyplot(Reaction_time~as.factor(Superpower), type=c("p","a"), data=HSS2, main="Reaction Time's are Pretty Consistent", ylab="Reaction Time", xlab="What Superpower do they Want?")
+```
+
+Across our plot we see a pretty similar score across each of the groups. Based on this, it looks like our superpower don't have a clear effect on people's reaction time.
+
+
+## Beverage on Reaction Time
+
+Caffeine affects people in different ways. For me it doesn't do much, but other people swear by it. Does getting wired up consistently help you react faster? Or maybe it dulls your senses over time if you're not drinking it? Only one way to find out! With an $\alpha$ = 0.05, we can make the following hypotheses: 
+
+$$H_0: \mu_\text{Hot Drinks} = \mu_\text{Water} ...= \mu_\text{Beverages} $$
+
+$$ H_a: \mu_\text{Hot Drinks} \neq \mu_\text{Water} ... \neq \mu_\text{Beverages}  $$
+
+We also grouped some beverages together so we would have larger sample sizes. Coffee and tea, Energy Drinks and Sports drinks, etc.
+```{r}
+pander(favstats(Reaction_time~ComboDrink,data=HSS2)[c('ComboDrink', 'min', 'median', 'max', 'mean','sd','n')])
+```
+
+With the beverage groups combined, each of our 5 categories has enough values that we can assume normality. Because of that, all but one of the means are within 0.2 seconds of each other, so that also doesn't make it likely that we will reject our null hypotheses.
+
+```{r}
+xyplot(Reaction_time~as.factor(ComboDrink), data=HSS2, main="Reaction is also Fairly Consistent", ylab="Reaction Time", xlab="Beverage of Choice",type=c("p","a"))
+```
+
+
+## Superpower & Beverage on Reaction Time
+
+But, what if we put the two together?! Is the Sports Drink Super Strength Lady the same as Mr. Invisible Water?
+
+$$H_0: \text{The effect of the Superpower on Reaction Time} \\ \text{is the same for all types of Beverages.} $$
+
+$$H_a: \text{The effect of the Superpower on Reaction Time} \\ \text{is NOT the same for all types of Beverages.} $$
+```{r}
+pander(favstats(Reaction_time~ComboDrink+Superpower,data=HSS2)[c('ComboDrink.Superpower', 'min', 'median', 'max', 'mean','sd','n')])
+```
+
+Although some of our combinations have bigger samples than others, each beverage/superpower mix has at least 2 values which is good. With 55 total combinations, it can be difficult to recognize differences between the matchups. Let's graph them instead. 
+
+```{r}
+xyplot(Reaction_time~as.factor(Superpower), type=c("p","a"), data=HSS2, main="Other than Super Strength, Pretty Steady", ylab="Reaction Time", xlab="What Superpower do they Want?",groups=ComboDrink,auto.key = list(corner=c(1,1)))
+```
+
+Super strength seems to have the most variability in its response time, and it also had by far the least number of responses. It's likely that the variability is a result of the low sample size for that specific section, not because people significantly score differently. I think our ANOVA test will reflect
+
+
+## The ANOVA Test
+
+(Quick side note: I think ANOVA would be an excellent name for a superhero)
+
+```{r}
+reactaov <- aov(Reaction_time ~ Superpower + ComboDrink + Superpower:ComboDrink, data=HSS2)
+pander(summary(reactaov))
+```
+
+Degrees of freedom are each the number of options -1, which is good. However, it looks like none of these have a significance level less than our $\alpha=0.05$, so we fail to reject all our null hypotheses. There is no significant difference in reaction times between drink types, superpowers, or both. Superpower was the closest, so good luck to all you aspiring superheroes out there.
+
+## Check Requirements
+
+```{r,warning=FALSE}
+par(mfrow=c(1,2))
+plot(reactaov, which=1:2)
+```
+
+We would expect the distribution of reaction times to be slightly right-skewed, because fast reactions are limited up to 0 seconds while slow reactions can be 2 seconds or more. The QQ Plot agrees, predicting lots of extreme values if this were a normal distribution. The residuals are fairly consistent vertically, but they do skew away from 0.0 as we get to beverage-superpower combinations with fewer values. Unfortunately, filtering those smaller combinations out wouldn't leave us with very many groups to compare in our ANVOA. Between the two, let's say our ANOVA is still valid.
+
+## Conclusion
+
+Getting a bigger sample size would help us getting a more clear picture on whether or not there is a significant impact on reaction time. Even after grouping beverages together, too many of our beverage-superhero comparisons just didn't have a large enough sample size to make our ANOVA trustworthy. Finally, I'd love to know how people with super speed interests score on the test.
+
+![](https://media1.giphy.com/media/S6BLhq4ZOvIdN0WVEQ/giphy.gif?cid=ecf05e47getadv5yvatc5y62wtg1vpc9qu5yhv8nm2wr9vyp&rid=giphy.gif&ct=g)
+

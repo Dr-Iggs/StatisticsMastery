@@ -1,0 +1,286 @@
+---
+title: "Bach Model"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+#### Click the Video to Listen to the Piece during the Analysis
+[![Bach's Magnificat](https://img.youtube.com/vi/EsUWG2axB3w/0.jpg)](https://www.youtube.com/watch?v=EsUWG2axB3w)
+
+Where do you even start when discussing the work of a master like Johann Sebastian Bach? His works for the organ, his fugues, maybe his cantatas for church?
+You probably don't start with a sophomore data science major, but here we are.
+At its core, music is just a series of notes and intervals, all revolving around a specific note or key. One highlight of Bach's work is that he revolves through keys within his piece, using notes that don't often appear in pieces. 
+Within a piece, does he use a similar distribution of notes? Some notes within a key are more likely to be used than the other, but if the distribution of notes is different, then that can tell us something about the way Bach composes the parts for his work.
+
+## Magnificat
+
+For this analysis, I'll be using the Magnificat, one of Bach's early works for church. It is based on the Anunciation of Mary found in Luke 1, each movement based on one of the verses. It's become one of his most popular choral works, and congregations will sometimes perform it around Christmas.
+
+![](https://i.pinimg.com/originals/80/55/98/805598ff8eb2fce92f47f7b88cb2cce9.jpg)
+
+
+```{r,include=FALSE}
+library(car)
+library(mosaic)
+library(pander)
+library(tidyverse)
+library(DT)
+```
+
+  
+```{r,include=FALSE}
+mvt2 <- read_csv('../Data/2Etexul.csv',skip=1)
+mvt3 <- read_csv('../Data/3Quiar.csv',skip=1)
+mvt4 <- read_csv('../Data/4Omnes.csv',skip=1)
+mvt5 <- read_csv('../Data/5Quiaf.csv',skip=1)
+mvt6 <- read_csv('../Data/6Etmiser.csv',skip=1)
+mvt7 <- read_csv('../Data/7Fecitpot.csv')
+mvt8 <- read_csv('../Data/8Deposuit.csv',skip=1)
+mvt9 <- read_csv('../Data/9Esuri.csv',skip=1)
+mvt10 <- read_csv('../Data/10Suscep.csv',skip=1)
+mvt11 <- read_csv('../Data/11Sicut.csv',skip=1)
+mvt12 <- read_csv('../Data/12Ba-gloria.csv',skip=1)
+#mvt2 <- read_csv('../Data/3Quiar.csv',skip=1)
+```
+
+Now that we have a dataset of every note, we want to be able to compare it to different movements. If we rewrite each tone in terms of the distance from that root (usually *D*, but not always) we can do analysis between them.
+
+```{r}
+mvt2 <- mvt2 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+6)%%12) #D major =12-6
+
+mvt3 <- mvt3 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+9)%%12) #B Major = 12-3
+
+mvt4 <- mvt4 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+2)%%12)
+mvt5 <- mvt5 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+11)%%12)
+
+mvt6 <- mvt6 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+4)%%12)
+mvt7 <- mvt7 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+6)%%12)
+mvt8 <- mvt8 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+2)%%12)
+mvt9 <- mvt9 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+4)%%12)
+mvt10 <- mvt10 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+9)%%12)
+mvt11 <- mvt11 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+6)%%12)
+mvt12 <- mvt12 %>% mutate(
+  note_pos = case_when(Note=='A'~1,
+                       Note=='A#'~2,
+                       Note=='B'~3,
+                       Note=='C'~4,
+                       Note=='C#'~5,
+                       Note=='D'~6,
+                       Note=='D#'~7,
+                       Note=='E'~8,
+                       Note=='F'~9,
+                       Note=='F#'~10,
+                       Note=='G'~11,
+                       Note=='G#'~12),
+  root_int = (note_pos+6)%%12)
+allmvt <- rbind(mvt2,mvt3,mvt4,mvt5,mvt6,mvt7,mvt8,mvt9,mvt10,mvt11,mvt12)
+```
+
+Before we get too far, let's check the population size for each movement:
+```{r}
+barplot(table(allmvt$Movement), main='How Big is each Movement?',
+        xlab='Movement',ylab='Number of Notes')
+```
+
+While each movement has a different number of notes (probably due to length or orchestration across the ensemble), each is much larger than 30, which means we can assume normality.
+
+Our hypotheses anticipate that the distribution of notes across the movements will be similar, which would make the mean of the notes also similar.
+$$H_0: \mu_{Movement 1} = \mu_{Movement 2}... = \mu_{All}$$
+$$H_a: \mu_{Movement 1} \neq \mu_{Movement 2}... \neq \mu_{All}$$
+
+Now that we have all of our notes written as a distance from the root, we can do a comparison between movements. First, let's see broadly how all the movements compare to each other.
+
+
+```{r}
+plot(jitter(note_pos)~jitter(Movement),data=allmvt,
+     xlab='Movement',ylab='Distance from the Root',main='The Beauty of Music')
+```
+
+This shows us every note in all of Bach's Magnificat! We can see some clear trends that suggest a similar distribution between movements: Most all of them avoid using an interval of a 2nd, 4th, and 9th. 7ths have a bit more flexibility, but we see a high density of notes for the roots, 3rd, and 8th. 
+
+Here's a histogram of two movements side by side for comparison.
+
+```{r}
+par(mfrow=c(1,2))
+hist(mvt2$root_int,xlab='Distance from the Key (in halfsteps',
+     main='Movement 2 in D Major')
+hist(mvt5$root_int,xlab='Distance from the Key (in halfsteps)',
+     main='Movement 5 in A Major')
+
+```
+
+This is what similar movements will look like. Although they were written for different parts of the choir and orchestra, and have different tempos and melodies, the notes he uses and their distributions are nearly identical.
+
+Is the distribution of key difference the same between movements? Are they from the sample population or fundamentally different?
+
+## ANOVA
+
+With our ANOVA test, we can compare these quantitative variables and see how likely they are to come from the same distribution of notes (and thus, the same style of composition)
+```{r}
+mvtaov <- aov(root_int~as.factor(Movement),data=allmvt)
+pander(summary(mvtaov))
+```
+
+With a very small *p-value*, we can reject our null hypothesis that all the movements use the same distribution of notes. Clearly Bach knows what he's doing, and writes each movement to match the needs of the text.
+
+One possible problem is that we combined the bright, major key movements with the more solemn, minor key movements. Those two types of key signatures have different notes that they emphasize: major keys usually use a major 3rd (interval of 4), while minor keys almost always use a minor 3rd (interval of 3). If we split our cantata into 2 halves, those might have a bit more in common.
+
+Here are the **Minor** keys:
+```{r}
+minormvt <- rbind(mvt3,mvt4,mvt6,mvt8,mvt10)
+majormvt <- rbind(mvt2,mvt5,mvt7,mvt9,mvt11,mvt12)
+minaov <- aov(root_int~as.factor(Movement),data=minormvt)
+pander(summary(minaov))
+```
+
+And here it is for just the **Major** keys:
+
+```{r}
+majaov <- aov(root_int~as.factor(Movement),data=majormvt)
+pander(summary(majaov))
+```
+
+We got some strange results! The major keys have a much weaker level of significance as we expected, although it is still within our $\alpha=0.05$. The minor keys, however, changed only slightly in its level of significance! My only guess is that minor keys are even more flexible than major keys: you can switch between harmonic minor and natural minor, and modulating down to even more solemn diminished chords (with more uncommon intervals) is a lot easier than in major. To me this says that if we want to learn more about Bach's creativity within keys, starting with his minor movements will teach us more.
+
+## Assumptions
+```{r}
+par(mfrow=c(1,2))
+plot(mvtaov, which=1:2)
+```
+
+Because we have a limited set of possible values, our fitted values looks a little sparse but still within a good assumption set. Our QQ Plot has lots of outliers on the extremes, which isn't good. 
+
+## In Conclusion
+For future studies, it would be great to do other collection's of Bach's works! We could do his solo violin or cello sonatas, his 48 Preludes and Fugues (each set of two are in different keys, so that would be interesting), or even do a similar analysis between the Magnificat and other larger choral works. When Bach has written 1,126 pieces, the possibilities are endless!

@@ -1,0 +1,15 @@
+---
+title: "Welcome!"
+author: "Spencer Driggs"
+date: "2023-03-22"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+[ANOVA]('HighSchoolSeniors.html')
+
+[Linear Regression]('MyLinearRegression.html')
